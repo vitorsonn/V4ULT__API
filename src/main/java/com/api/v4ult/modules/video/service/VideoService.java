@@ -8,6 +8,8 @@ import com.api.v4ult.modules.video.dto.CreateVideoDTO;
 import com.api.v4ult.modules.video.dto.VideoResponseDTO;
 import com.api.v4ult.modules.video.repo.VideoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -36,12 +38,15 @@ public class VideoService {
         return VideoResponseDTO.fromEntity(savedVideo);
     }
 
+    @Cacheable(value = "videos", key = "#id")
     public VideoResponseDTO findById(String id) {
+        System.out.println("=== BUSCANDO NO MONGODB (CACHE MISS) ===");
         Video video = videoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vídeo não encontrado com o ID: " + id));
         return VideoResponseDTO.fromEntity(video);
     }
 
+    @CacheEvict(value = "videos", key = "#videoId")
     public void addComment(String videoId, CreateCommentDTO dto) {
 
         Query query = new Query(Criteria.where("id").is(videoId));
@@ -64,6 +69,7 @@ public class VideoService {
         }
     }
 
+    @CacheEvict(value = "videos", key = "#videoId")
     public void incrementViews(String videoId) {
         Query query = new Query(Criteria.where("id").is(videoId));
 
