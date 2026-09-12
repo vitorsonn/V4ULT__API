@@ -1,8 +1,10 @@
 package com.api.v4ult.modules.video.controller;
 
 
+import com.api.v4ult.modules.video.domain.Comment;
 import com.api.v4ult.modules.video.dto.CreateCommentDTO;
 import com.api.v4ult.modules.video.dto.CreateVideoDTO;
+import com.api.v4ult.modules.video.dto.PageResponseDTO;
 import com.api.v4ult.modules.video.dto.VideoResponseDTO;
 import com.api.v4ult.modules.video.service.VideoService;
 import jakarta.validation.Valid;
@@ -45,5 +47,15 @@ public class VideoController {
     public ResponseEntity<Void> incrementViews(@PathVariable String id) {
         videoService.incrementViews(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<PageResponseDTO<Comment>> getComments(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        PageResponseDTO<Comment> response = videoService.findCommentsPaginated(id, page, size);
+        return ResponseEntity.ok(response);
     }
 }
