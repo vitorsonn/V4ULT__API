@@ -19,6 +19,7 @@ import org.bson.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
@@ -30,6 +31,8 @@ public class VideoService {
 
     private final VideoRepository videoRepository;
     private final MongoTemplate mongoTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    private static final String VIEWS_BUFFER_KEY = "video:views:buffer:";
 
 
     public VideoResponseDTO createVideo(CreateVideoDTO dto) {
@@ -55,7 +58,7 @@ public class VideoService {
     @CacheEvict(value = "videos", key = "#videoId")
     public void addComment(String videoId, CreateCommentDTO dto) {
 
-        Query query = new Query(Criteria.where("id").is(videoId));
+        Query query = new Query(Criteria.where("_id").is(new ObjectId(videoId)));
 
         Comment comment = Comment.builder()
                 .id(UUID.randomUUID().toString())
@@ -75,17 +78,9 @@ public class VideoService {
         }
     }
 
-    @CacheEvict(value = "videos", key = "#videoId")
     public void incrementViews(String videoId) {
-        Query query = new Query(Criteria.where("id").is(videoId));
-
-        Update update = new Update().inc("views", 1);
-
-        var result = mongoTemplate.updateFirst(query, update, Video.class);
-
-        if (result.getMatchedCount() == 0) {
-            throw new RuntimeException("Vídeo não encontrado para incrementar visualizações");
-        }
+        String bufferKey = VIEWS_BUFFER_KEY + videoId;
+        stringRedisTemplate.opsForValue().increment(bufferKey);
     }
 
 
